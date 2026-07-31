@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax-and-layout:
+    name: Python syntax and project layout
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile Python modules
+        run: >-
+          python -m compileall -q common image_classification image_denoising
+          image_similarity web
+      - name: Verify required project files
+        run: |
+          test -f README.md
+          test -f requirements.txt
+          test -f common/fashion-labels.csv
+          test -f web/web_app.py
