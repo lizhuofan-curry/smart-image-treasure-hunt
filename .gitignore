@@ -1,0 +1,24 @@
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# IDE settings
+.idea/
+.vscode/
+*.iml
+
+# Large local dataset and generated artifacts
+common/dataset/
+common/dataset.zip
+*.pth
+*.npy
+
+# Runtime-generated web files
+web/static/uploads/
+web/static/results/
+
+# OS files
+.DS_Store
+Thumbs.db
