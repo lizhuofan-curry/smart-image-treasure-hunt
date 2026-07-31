@@ -1,7 +1,7 @@
 # ✨ 智图寻宝 · Shop Vision
 
 <p align="center">
-  <img src="web/static/images/school_logo.png" alt="项目 Logo" width="140" />
+  <img src="https://raw.githubusercontent.com/lizhuofan-curry/smart-image-treasure-hunt/main/web/static/images/school_logo.png" alt="河南大学软件学院项目 Logo" width="140" />
 </p>
 
 <p align="center">
@@ -22,21 +22,15 @@
 
 `computer-vision` `deep-learning` `pytorch` `flask` `image-classification` `image-denoising` `image-retrieval` `autoencoder` `knn` `fashion`
 
-## 🎬 运行效果
+## 🖥️ 网页界面
 
-下图为本项目网页实际生成的一组去噪结果，GIF 在“加噪输入”和“模型去噪输出”之间循环切换；它是展示素材，不代表定量评测指标。
-
-<p align="center">
-  <img src="docs/assets/denoising-demo.gif" alt="真实去噪演示：加噪输入与模型去噪输出循环展示" width="544" />
-</p>
-
-> 演示素材来自本项目网页的一次真实输出。为保证结论严谨，本页面不以该 GIF 推导精度、速度或泛化能力等量化结果。
+下图为本地 Flask 服务实际运行时的首页，提供统一上传入口，并在同一页面承载商品分类、图像去噪和相似商品检索。
 
 <p align="center">
   <img src="docs/assets/web-home-full.png" alt="智图寻宝 Flask 网页首页实际运行截图" width="720" />
 </p>
 
-<p align="center"><sub>🖥️ Flask 网页首页：图片上传区、功能入口与实时服务状态</sub></p>
+<p align="center"><sub>Flask 网页首页：图片上传区、功能入口与实时服务状态</sub></p>
 
 ## 💡 核心亮点
 
@@ -161,14 +155,14 @@ python -m web.web_app
 
 - **可运行应用**：三个视觉模块已接入同一 Flask 页面，默认监听 `127.0.0.1:9000`。
 - **可复现实验资产**：数据集压缩包、分类/去噪/检索模型权重与检索特征库均由 Git LFS 管理。
-- **真实演示材料**：`docs/assets/denoising-demo.gif` 由网页实际结果生成。
+- **真实演示材料**：`docs/assets/web-home-full.png` 为本地 Flask 首页实际运行截图。
 - **补充证明材料**：如需添加课程证书、获奖证明或项目答辩材料，请置于 `docs/certificates/`，并在本节追加来源和说明。
 
 ## 🗺️ 路线图
 
 - [x] 三个 CV 模块的统一 Web 入口
 - [x] Git LFS 大文件管理与基础 CI
-- [x] README 动态演示与复现说明
+- [x] README 网页界面展示与复现说明
 - [ ] 增加自动化单元/集成测试与模型加载烟雾测试
 - [ ] 容器化（Docker）并接入可选部署目标
 - [ ] 配置 CD：镜像构建、部署及健康检查
@@ -180,4 +174,4 @@ Python · PyTorch · Torchvision · Flask · Pillow · NumPy · Pandas · scikit
 
 ## 📌 说明
 
-README 对模型结构、损失函数和检索方式均以仓库当前代码为准；演示 GIF 展示的是一次真实的网页去噪输出，不应被解读为模型精度、检索延迟或泛化能力的量化结论。
+README 对模型结构、损失函数和检索方式均以仓库当前代码为准；网页截图用于说明交互界面，不应被解读为模型精度、检索延迟或泛化能力的量化结论。
