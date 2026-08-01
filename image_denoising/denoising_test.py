@@ -68,9 +68,17 @@ def test_model():
     noisy_images = noisy_images.to(device)
     # 测试阶段不计算梯度
     with torch.no_grad():
-        denoised_images = model(noisy_images)
+        # 模型预测当前图片中的噪声
+        predicted_noise = model(noisy_images)
+
+        # 从带噪图片中减去预测噪声
+        denoised_images = noisy_images - predicted_noise
+
+        # 恢复后的像素可能短暂超出 [0,1]
+        denoised_images = torch.clamp(denoised_images, 0.0, 1.0)
 
     print("带噪图片形状：", noisy_images.shape)
+    print('预测噪声形状：',predicted_noise.shape)
     print("去噪图片形状：", denoised_images.shape)
     print("清晰图片形状：", clean_images.shape)
 

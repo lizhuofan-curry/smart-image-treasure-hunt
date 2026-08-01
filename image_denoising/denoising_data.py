@@ -12,7 +12,7 @@ from image_denoising.denoising_config import (
 )
 import matplotlib.pyplot as plt
 import torch
-from torch.utils.data import Dataset,random_split
+from torch.utils.data import Dataset,Subset
 from pathlib import Path
 
 from PIL import Image
@@ -70,7 +70,8 @@ def get_image_paths(image_dir):
     添加椒盐噪声后的图片        
 '''
 def add_salt_pepper_noise(image,
-                          noise_ratio):
+                          noise_ratio,
+                          generator = None):    # 训练集传 None,噪声每次随机变化，验证集传固定生成器
     noisy_image = image.clone() # clone 创建一份图片副本，避免直接修改作为训练目标的 clean_image
 
     # 只创建一张空间随机图
@@ -79,6 +80,7 @@ def add_salt_pepper_noise(image,
         1,
         image.shape[1],
         image.shape[2],
+        generator=generator,
         device=image.device
     )
     pepper_mask = random_map < noise_ratio/2
@@ -103,8 +105,12 @@ def add_salt_pepper_noise(image,
 
 # 噪声函数不在绑定固定配置，增加随机性，提高泛化能力
 def add_gaussian_noise(image,
-                       noise_factor):
-    gaussian_noise = torch.randn_like(image)
+                       noise_factor,
+                       generator= None):
+    gaussian_noise = torch.randn( size=image.shape,
+                                  generator=generator,
+                                  device=image.device,
+                                  dtype=image.dtype)
     noisy_image = image+noise_factor*gaussian_noise
     # 由于randn可能随机产数负数，添加高斯噪声后部分像素可能超出 [0,1]
     # 用clamp把它们限制在[0,1] 大于1的为1，小于0的为0
@@ -122,6 +128,8 @@ class ImageDenoisingDataset(Dataset):
             gaussian_noise_max = TRAIN_GAUSSIAN_NOISE_MAX,
             salt_pepper_min = TRAIN_SALT_PEPPER_MIN,
             salt_pepper_max = TRAIN_SALT_PEPPER_MAX,
+            is_train = True,
+            noise_seed = SEED
     ):
         self.image_dir = image_dir  # 保存图片所在目录
 
@@ -134,6 +142,13 @@ class ImageDenoisingDataset(Dataset):
         # 保存椒盐噪声的随机范围
         self.salt_pepper_min = salt_pepper_min
         self.salt_pepper_max = salt_pepper_max
+
+        #  True 表示是训练集，噪声每次随机变化
+        # False 表示验证集，噪声固定
+        self.is_train = is_train
+
+        # 验证集生成固定噪声时使用
+        self.noise_seed = noise_seed
 
         self.image_paths = get_image_paths(image_dir) # 保存图片路径
 
@@ -153,44 +168,64 @@ class ImageDenoisingDataset(Dataset):
 
         clean_image = self.transform(clean_image)   # 将它放缩和转成tensor
 
+        # 创建随机数生成器
+        if self.is_train:
+            # 训练集：每次读取图片时产生不同的随机噪声
+            python_rng = random
+            torch_generator = None
+        else:
+            # 验证集：同一个 index 每次使用相同的种子，因此每轮验证获得相同噪声
+            current_seed = (self.noise_seed + index)
+            python_rng = random.Random(current_seed)
+            torch_generator = torch.Generator().manual_seed(current_seed)
+
         # 在[0.05,0.25]之间随机生成一个高斯噪声的强度
-        gaussian_noise_factor = random.uniform(
+        gaussian_noise_factor = python_rng.uniform(
             self.gaussian_noise_min,
             self.gaussian_noise_max
         )
 
         # 在 [0.01，0.04]之间生成椒盐比例的随机数
-        salt_pepper_ratio = random.uniform(
+        salt_pepper_ratio = python_rng.uniform(
             self.salt_pepper_min,
             self.salt_pepper_max
         )
 
         # 随机产生 0，1，2 中的一个整数，用于决定本次采用哪种噪声
-        noise_type = random.randint(0,2)
+        # 让训练时的混合噪声居多
+        noise_type = python_rng.choices(
+            population= [0,1,2],    # 表示可以选择的结果
+            weights = [0.3,0.3,0.4], # 表示三个结果的相对概率
+            k = 1,                   # 表示只随机选择一个结果
+        )[0]  # 因为这个返回的是一个列表，列表中只有一个值，所以取第0个
 
         if noise_type == 0:
             # 情况1：只添加高斯噪声
             noisy_image = add_gaussian_noise(
                 image=clean_image,
-                noise_factor = gaussian_noise_factor
+                noise_factor = gaussian_noise_factor,
+                generator= torch_generator
             )
 
         elif noise_type == 1:
             # 只添加椒盐噪声
             noisy_image = add_salt_pepper_noise(
                 image=clean_image,
-                noise_ratio=salt_pepper_ratio
+                noise_ratio=salt_pepper_ratio,
+                generator=torch_generator
             )
         else:
             # 先添加高斯噪声
             noisy_image = add_gaussian_noise(
                 image=clean_image,
-                noise_factor = gaussian_noise_factor
+                noise_factor = gaussian_noise_factor,
+                generator=torch_generator
             )
             # 再叠加椒盐噪声
             noisy_image = add_salt_pepper_noise(
                 image = noisy_image,
-                noise_ratio=salt_pepper_ratio
+                noise_ratio=salt_pepper_ratio,
+                generator=torch_generator
             )
 
         return noisy_image,clean_image
@@ -220,25 +255,48 @@ def create_dataset():
     # 图片预处理只在创建数据集时统一定义
     # 不能强制拉伸成正方形 60 x 80 -> 64 x 64 这样人物会被横向拉宽
     transform = create_transform()
-    # 创建完整数据集
-    full_dataset = ImageDenoisingDataset(
+
+    # 创建训练数据源
+    # 训练集噪声每次随机变化
+    train_source = ImageDenoisingDataset(
         image_dir=IMG_PATH,
         transform=transform,
+        is_train= True,
+        noise_seed = SEED
     )
+
+    # 创建验证数据源
+    # 验证集噪声根据图片 index 固定
+    val_source = ImageDenoisingDataset(
+        image_dir=IMG_PATH,
+        transform= transform,
+        is_train= False,
+        noise_seed = SEED + 10000,
+    )
+
+    # 生成固定划分索引
+    dataset_size = len(train_source)
 
     # 根据配置比例计算两个子集的样本数量
-    train_size = int(len(full_dataset) * TRAIN_RATIO)
-    val_size = len(full_dataset) - train_size
+    train_size = int(dataset_size * TRAIN_RATIO)
+    val_size = dataset_size - train_size
 
     # 固定本次划分使用的随机种子
+
     generator = torch.Generator().manual_seed(SEED)
 
-    # 随机划分训练集和验证集
-    train_dataset,val_dataset = random_split(
-        dataset=full_dataset,
-        lengths=[train_size, val_size],
+    # 生成 0 ~ dataset_size - 1 的随机排列
+    shuffled_indices = torch.randperm(
+        dataset_size,
         generator=generator
-    )
+    ).tolist()
+
+    train_indices = (shuffled_indices[:train_size])
+    val_indices = (shuffled_indices[train_size:])
+
+    # 创建训练集和验证集
+    train_dataset = Subset(train_source, train_indices)
+    val_dataset = Subset(val_source, val_indices)
 
     return train_dataset,val_dataset
 
@@ -252,6 +310,20 @@ if __name__ == '__main__':
     print("训练集图片数量：", len(train_dataset))
     print("验证集图片数量：", len(val_dataset))
 
+    train_noisy_1, _ = train_dataset[0]
+    train_noisy_2, _ = train_dataset[0]
+
+    print(
+        "训练集两次噪声是否相同：",
+        torch.equal(
+            train_noisy_1,
+            train_noisy_2,
+        )
+    )
+
+    valid_noisy_1, _ = val_dataset[0]
+    valid_noisy_2, _ = val_dataset[0]
+    print('验证集两次噪声是否相同：',torch.equal(valid_noisy_1,valid_noisy_2))
     noisy_image, clean_image = train_dataset[0]
 
     # Tensor 图片的形状是 [通道, 高度, 宽度]
@@ -276,3 +348,4 @@ if __name__ == '__main__':
 
     plt.tight_layout()
     plt.show()
+

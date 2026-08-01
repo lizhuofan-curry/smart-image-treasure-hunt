@@ -9,14 +9,15 @@
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&amp;logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/PyTorch-Deep%20Learning-EE4C2C?logo=pytorch&amp;logoColor=white" alt="PyTorch" />
   <img src="https://img.shields.io/badge/Flask-Web%20Application-000000?logo=flask&amp;logoColor=white" alt="Flask" />
+  <img src="https://img.shields.io/badge/Kimi-Multimodal%20Vision-5B5BD6" alt="Kimi Vision" />
   <img src="https://img.shields.io/badge/Git%20LFS-Assets-F05032?logo=gitlfs&amp;logoColor=white" alt="Git LFS" />
 </p>
 
-<p align="center"><b>🛍️ 商品图像分类 · ✨ 图像去噪 · 🔎 相似商品检索</b></p>
+<p align="center"><b>🛍️ 商品分类 · ✨ 图像去噪 · 🔎 相似检索 · 🤖 AI 商品文案</b></p>
 
-“智图寻宝”是一个面向商品图片场景的计算机视觉综合实践项目。它将三条独立的 PyTorch 推理链路接入同一个 Flask 网页：上传一张图片，即可完成商品类别判断、带噪图像恢复，或从商品图库中找出最相近的 5 件商品。
+“智图寻宝”是一个面向商品图片场景的 AI 视觉应用。一次上传，完成从**看懂图片**到**生成可读结论**的闭环：识别商品类别、恢复带噪图像、检索相似商品，并借助 Kimi 多模态模型生成克制可靠的中文商品介绍。
 
-它关注的不只是“训练出一个模型”，还将**数据准备、模型权重、特征库、Web 推理与结果呈现**串成可复现的完整闭环：分类回答“它是什么”，去噪改善“看得是否清楚”，检索回答“与哪些商品相似”。
+它关注的不只是“训练出一个模型”，还将**数据准备、模型权重、特征库、Web 推理、LLM 调用与结果呈现**串成完整闭环：分类回答“它是什么”，去噪改善“看得是否清楚”，检索回答“与哪些商品相似”，AI 文案则把视觉信息转换为用户可读的描述。
 
 ## 🏷️ 项目标签
 
@@ -42,6 +43,13 @@
 | 可维护的工程结构 | 训练、测试、配置、推理服务按模块拆分，路径与超参数集中管理。 |
 | 可复现的交付 | 随机种子工具、Git LFS 资产管理和 GitHub Actions CI 共同支撑复现与持续检查。 |
 
+## 🚀 本次更新优势
+
+- **视觉结果更易理解**：新增 AI 商品介绍。Kimi 多模态模型会基于上传图片生成 150 字以内的中文描述，并通过受约束提示词避免编造品牌、价格、材质与性能参数。
+- **工作流更完整**：同一张已上传图片可连续用于分类、去噪、相似检索和文案生成，用户不需要在不同页面或脚本之间重复操作。
+- **去噪训练更充分**：训练轮数扩展至 30 轮，并保存验证集表现最佳的权重；本次训练记录中的最佳验证损失为 `0.010642`。
+- **配置更安全、交付更干净**：Kimi 密钥通过本地 `kimi.env` 配置并被忽略规则保护；上传图和处理结果属于运行时产物，不会进入版本库。
+
 ## 🧠 功能一览
 
 | 模块 | 实现方式 | 用户可见结果 |
@@ -49,6 +57,7 @@
 | 商品分类 | 4 个卷积块（16 → 32 → 64 → 128）+ 全局平均池化 | 上衣、鞋、包、下身衣服、手表 5 类预测 |
 | 图像去噪 | 带跳跃连接的轻量 U-Net 风格卷积自编码器 | 固定强度混合噪声下的去噪图像 |
 | 相似商品检索 | 5 层卷积编码器、1024 维嵌入、余弦距离 KNN | Top-5 相似商品、距离与相似度 |
+| AI 商品文案 | Kimi 多模态视觉 API + 受约束提示词 | 基于可见信息的 150 字内中文商品介绍 |
 | Web 服务 | Flask + HTML/CSS/JavaScript | 上传、推理、结果展示的一体化页面 |
 
 ## 🔄 系统流程
@@ -114,13 +123,23 @@ pip install -r requirements.txt
 
 若使用 GPU，请从 [PyTorch 官网](https://pytorch.org/get-started/locally/) 安装与你的 CUDA 环境匹配的 `torch` 与 `torchvision`。
 
-### 4. 启动应用
+### 4. 配置 Kimi 多模态能力（可选）
+
+在项目根目录创建仅保存在本地的 `kimi.env`：
+
+```env
+MOONSHOT_API_KEY=你的_Kimi_API_Key
+```
+
+该文件已被 `.gitignore` 排除，**不要提交、截图或分享其中的密钥**。未配置时，分类、去噪与检索模块仍可使用；仅 AI 商品文案不可用。
+
+### 5. 启动应用
 
 ```bash
 python -m web.web_app
 ```
 
-打开 <http://127.0.0.1:9000>，上传 JPG、JPEG、PNG 或 BMP 图片（最大 10 MB），再选择“商品分类”“图像去噪”或“相似商品”。
+打开 <http://127.0.0.1:9001>，上传 JPG、JPEG、PNG 或 BMP 图片（最大 10 MB），再选择“商品分类”“图像去噪”“相似商品”或“AI 商品介绍”。
 
 ### 🩺 启动前自检
 

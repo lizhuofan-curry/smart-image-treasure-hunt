@@ -20,6 +20,7 @@ def seed_everything(seed=42):
     torch.backends.cudnn.deterministic = True  # 保证 CuDNN 操作确定性
     torch.backends.cudnn.benchmark = False  # 禁用自动选择优化算法
 
+# 正则表达式模块
 import re
 
 # 将文件名的列表，按照字母和数字进行排序

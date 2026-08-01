@@ -1,1091 +1,366 @@
-<!-- 本文件负责定义智图寻宝首页、图片上传、功能选择和模型结果展示结构 -->
-
+<!-- 智图寻宝首页：图片上传、四个功能模块及结果展示 -->
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智图寻宝</title>
-
-    <!-- 浏览器标签页图标 -->
-    <link
-        rel="icon"
-        type="image/png"
-        href="{{ url_for('static', filename='images/school_logo.png') }}"
-    >
-
-    <!-- 首页样式文件 -->
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/index.css') }}"
-    >
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/school_logo.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 </head>
-
 <body>
-
-    <div class="page-shell">
-
-        <!-- ==================== 顶部导航 ==================== -->
-
-        <nav class="top-nav">
-
-            <a
-                class="college-brand"
-                href="/"
-            >
-
-                <img
-                    class="college-logo"
-                    src="{{ url_for('static', filename='images/school_logo.png') }}"
-                    alt="河南大学软件学院院徽"
-                >
-
-                <div class="college-text">
-
-                    <strong>
-                        河南大学软件学院
-                    </strong>
-
-                    <span>
-                        Computer Vision Project
-                    </span>
-
-                </div>
-
-            </a>
-
-
-            <div class="service-status">
-
-                <span class="status-dot"></span>
-
-                <span>
-                    系统服务正常
-                </span>
-
+<div class="page-shell">
+    <nav class="top-nav">
+        <a class="college-brand" href="/">
+            <img class="college-logo" src="{{ url_for('static', filename='images/school_logo.png') }}" alt="河南大学软件学院院徽">
+            <div class="college-text">
+                <strong>河南大学软件学院</strong>
+                <span>Computer Vision Project</span>
             </div>
+        </a>
+        <div class="service-status">
+            <span class="status-dot"></span>
+            <span>系统服务正常</span>
+        </div>
+    </nav>
 
-        </nav>
+    <header class="hero">
+        <div class="hero-content">
+            <span class="hero-label">COMPUTER VISION & MULTIMODAL AI</span>
+            <h1>智图寻宝</h1>
+            <p class="hero-description">
+                基于深度学习与多模态大模型的商品图像智能处理系统。
+                上传一张商品图片，即可进行图像去噪、商品分类、
+                相似商品检索和 AI 商品介绍生成。
+            </p>
+            <div class="hero-tags">
+                <span>图像去噪</span>
+                <span>商品分类</span>
+                <span>相似检索</span>
+                <span>AI 商品介绍</span>
+            </div>
+        </div>
+        <div class="hero-logo-area">
+            <div class="hero-logo-frame">
+                <img src="{{ url_for('static', filename='images/school_logo.png') }}" alt="河南大学软件学院院徽">
+            </div>
+        </div>
+    </header>
 
+    <main class="workspace">
+        <div class="workspace-heading">
+            <div>
+                <span class="section-kicker">IMAGE WORKSPACE</span>
+                <h2>上传商品图片</h2>
+                <p>第一步负责上传并预览原始图片。上传成功后，再选择需要运行的功能模块。</p>
+            </div>
+            <span class="step-badge">STEP 01 · 上传图片</span>
+        </div>
 
-        <!-- ==================== 项目介绍 ==================== -->
+        {% if error_message %}
+        <div class="error-message">
+            <span class="error-icon">!</span>
+            <span>{{ error_message }}</span>
+        </div>
+        {% endif %}
 
-        <header class="hero">
-
-            <div class="hero-content">
-
-                <span class="hero-label">
-                    COMPUTER VISION PROJECT
-                </span>
-
-                <h1>
-                    智图寻宝
-                </h1>
-
-                <p class="hero-description">
-                    基于深度学习的商品图像智能处理与相似检索系统。
-                    上传一张商品图片，然后选择图像去噪、商品分类
-                    或相似商品检索功能。
+        <div class="upload-layout">
+            <form id="uploadForm" class="upload-card" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="upload">
+                <div class="upload-icon">↑</div>
+                <h3>选择商品图片</h3>
+                <p class="upload-description">
+                    推荐上传主体完整、光线清晰、背景简洁的商品图片。
+                    支持 JPG、JPEG、PNG 和 BMP 格式。
                 </p>
+                <input id="imageInput" class="file-input" type="file" name="image" accept=".jpg,.jpeg,.png,.bmp" required>
+                <label class="file-selector" for="imageInput">
+                    <span class="selector-icon">📁</span>
+                    <strong>点击选择电脑中的图片</strong>
+                    <small>JPG、JPEG、PNG、BMP</small>
+                </label>
+                <p id="selectedFileName" class="selected-file-name">
+                    {% if original_filename %}
+                        已上传：{{ original_filename }}
+                    {% else %}
+                        暂未选择图片
+                    {% endif %}
+                </p>
+                <button id="uploadButton" class="upload-button" type="submit">上传图片</button>
+            </form>
 
-                <div class="hero-tags">
-
-                    <span>
-                        图像去噪
-                    </span>
-
-                    <span>
-                        商品分类
-                    </span>
-
-                    <span>
-                        相似检索
-                    </span>
-
-                </div>
-
-            </div>
-
-
-            <div class="hero-logo-area">
-
-                <div class="hero-logo-frame">
-
-                    <img
-                        src="{{ url_for('static', filename='images/school_logo.png') }}"
-                        alt="河南大学软件学院院徽"
-                    >
-
-                </div>
-
-            </div>
-
-        </header>
-
-
-        <!-- ==================== 主工作区域 ==================== -->
-
-        <main class="workspace">
-
-            <!-- 上传区域标题 -->
-
-            <div class="workspace-heading">
-
-                <div>
-
-                    <span class="section-kicker">
-                        IMAGE WORKSPACE
-                    </span>
-
-                    <h2>
-                        上传商品图片
-                    </h2>
-
-                    <p>
-                        第一步只负责上传并显示原始图片。
-                        上传成功后，再选择需要运行的图像处理模块。
-                    </p>
-
-                </div>
-
-                <span class="step-badge">
-                    STEP 01 · 上传图片
-                </span>
-
-            </div>
-
-
-            <!-- ==================== 错误提示 ==================== -->
-
-            {% if error_message %}
-
-                <div class="error-message">
-
-                    <span class="error-icon">
-                        !
-                    </span>
-
-                    <span>
-                        {{ error_message }}
-                    </span>
-
-                </div>
-
-            {% endif %}
-
-
-            <!-- ==================== 上传与原图预览 ==================== -->
-
-            <div class="upload-layout">
-
-                <!-- 左侧图片上传区 -->
-
-                <form
-                    id="uploadForm"
-                    class="upload-card"
-                    method="post"
-                    enctype="multipart/form-data"
-                >
-
-                    <!-- 告诉 Flask 当前操作为上传图片 -->
-
-                    <input
-                        type="hidden"
-                        name="action"
-                        value="upload"
-                    >
-
-
-                    <div class="upload-icon">
-                        ↑
+            <section class="preview-card">
+                <div class="preview-heading">
+                    <div>
+                        <h3>原始图片预览</h3>
+                        <p>图片将按照原始比例完整显示</p>
                     </div>
+                    <span class="preview-tag">原始图像</span>
+                </div>
+                <div class="preview-stage">
+                    <div class="image-frame">
+                        <img id="previewImage" class="preview-image" alt="用户上传的商品图片"
+                            {% if uploaded_filename %}
+                                src="{{ url_for('static', filename='uploads/' + uploaded_filename) }}"
+                            {% else %}
+                                hidden
+                            {% endif %}
+                        >
+                        <div id="emptyPreview" class="empty-preview" {% if uploaded_filename %}hidden{% endif %}>
+                            <span class="empty-preview-icon">🖼️</span>
+                            <strong>暂无商品图片</strong>
+                            <p>在左侧选择一张图片后，原始图片将在这里进行大尺寸预览。</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
 
-                    <h3>
-                        选择商品图片
-                    </h3>
+        {% if uploaded_filename %}
+        <section class="module-section">
+            <div class="module-heading">
+                <div>
+                    <span class="module-kicker">PROCESSING MODULES</span>
+                    <h2>选择图像处理功能</h2>
+                    <p>原始图片已经上传完成。点击对应模块后，系统才会运行相应模型或 API。</p>
+                </div>
+                <span class="step-badge">STEP 02 · 选择模块</span>
+            </div>
 
-                    <p class="upload-description">
-                        推荐上传主体完整、光线清晰、背景简洁的商品图片。
-                        支持 JPG、JPEG、PNG 和 BMP 格式。
-                    </p>
-
-
-                    <!-- 原生文件选择框 -->
-
-                    <input
-                        id="imageInput"
-                        class="file-input"
-                        type="file"
-                        name="image"
-                        accept=".jpg,.jpeg,.png,.bmp"
-                        required
-                    >
-
-
-                    <!-- 自定义文件选择区域 -->
-
-                    <label
-                        class="file-selector"
-                        for="imageInput"
-                    >
-
-                        <span class="selector-icon">
-                            📁
+            <div class="module-grid">
+                <form class="module-form" method="post">
+                    <input type="hidden" name="action" value="denoise">
+                    <input type="hidden" name="uploaded_filename" value="{{ uploaded_filename }}">
+                    <input type="hidden" name="original_filename" value="{{ original_filename }}">
+                    <button class="module-card module-card-active" type="submit">
+                        <span class="module-number">01</span>
+                        <span class="module-content">
+                            <strong>图像去噪</strong>
+                            <small>添加高斯与椒盐噪声，展示 U-Net 去噪前后对比</small>
                         </span>
-
-                        <strong>
-                            点击选择电脑中的图片
-                        </strong>
-
-                        <small>
-                            JPG、JPEG、PNG、BMP
-                        </small>
-
-                    </label>
-
-
-                    <!-- 显示当前文件名 -->
-
-                    <p
-                        id="selectedFileName"
-                        class="selected-file-name"
-                    >
-
-                        {% if original_filename %}
-
-                            已上传：{{ original_filename }}
-
-                        {% else %}
-
-                            暂未选择图片
-
-                        {% endif %}
-
-                    </p>
-
-
-                    <button
-                        id="uploadButton"
-                        class="upload-button"
-                        type="submit"
-                    >
-                        上传图片
+                        <span class="module-state">点击运行</span>
                     </button>
-
                 </form>
 
-
-                <!-- 右侧原始图片预览 -->
-
-                <section class="preview-card">
-
-                    <div class="preview-heading">
-
-                        <div>
-
-                            <h3>
-                                原始图片预览
-                            </h3>
-
-                            <p>
-                                图片将按照原始比例完整显示
-                            </p>
-
-                        </div>
-
-                        <span class="preview-tag">
-                            原始图像
+                <form class="module-form" method="post">
+                    <input type="hidden" name="action" value="classify">
+                    <input type="hidden" name="uploaded_filename" value="{{ uploaded_filename }}">
+                    <input type="hidden" name="original_filename" value="{{ original_filename }}">
+                    <button class="module-card module-card-active" type="submit">
+                        <span class="module-number">02</span>
+                        <span class="module-content">
+                            <strong>商品分类</strong>
+                            <small>对五个类别分数执行 Softmax，输出预测类别和最高概率</small>
                         </span>
+                        <span class="module-state">点击运行</span>
+                    </button>
+                </form>
 
-                    </div>
+                <form class="module-form" method="post">
+                    <input type="hidden" name="action" value="similarity">
+                    <input type="hidden" name="uploaded_filename" value="{{ uploaded_filename }}">
+                    <input type="hidden" name="original_filename" value="{{ original_filename }}">
+                    <button class="module-card module-card-active" type="submit">
+                        <span class="module-number">03</span>
+                        <span class="module-content">
+                            <strong>相似检索</strong>
+                            <small>提取视觉特征，检索余弦距离最近的五张商品图片</small>
+                        </span>
+                        <span class="module-state">点击运行</span>
+                    </button>
+                </form>
 
+                <form class="module-form" method="post">
+                    <input type="hidden" name="action" value="describe">
+                    <input type="hidden" name="uploaded_filename" value="{{ uploaded_filename }}">
+                    <input type="hidden" name="original_filename" value="{{ original_filename }}">
+                    <button class="module-card module-card-active module-card-ai" type="submit">
+                        <span class="module-number module-number-ai">04</span>
+                        <span class="module-content">
+                            <strong>AI 商品介绍</strong>
+                            <small>调用 Kimi 多模态模型理解图片，自动生成客观的中文商品介绍</small>
+                        </span>
+                        <span class="module-state module-state-ai">点击生成</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+        {% endif %}
 
-                    <div class="preview-stage">
-
-                        <div class="image-frame">
-
-                            <!--
-                                上传成功后显示服务器图片。
-                                上传之前由 JavaScript 显示本地预览。
-                            -->
-
-                            <img
-                                id="previewImage"
-                                class="preview-image"
-                                alt="用户上传的商品图片"
-
-                                {% if uploaded_filename %}
-
-                                    src="{{ url_for(
-                                        'static',
-                                        filename='uploads/' + uploaded_filename
-                                    ) }}"
-
-                                {% else %}
-
-                                    hidden
-
-                                {% endif %}
-                            >
-
-
-                            <!-- 尚未选择图片时显示占位区域 -->
-
-                            <div
-                                id="emptyPreview"
-                                class="empty-preview"
-
-                                {% if uploaded_filename %}
-
-                                    hidden
-
-                                {% endif %}
-                            >
-
-                                <span class="empty-preview-icon">
-                                    🖼️
-                                </span>
-
-                                <strong>
-                                    暂无商品图片
-                                </strong>
-
-                                <p>
-                                    在左侧选择一张图片后，
-                                    原始图片将在这里进行大尺寸预览。
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
+        {% if denoising_result and active_module == "denoising" %}
+        <section class="denoising-result">
+            <div class="result-heading">
+                <div>
+                    <span class="result-kicker">U-NET DENOISING</span>
+                    <h2>图像去噪结果</h2>
+                    <p class="result-description">按照原始图像、添加噪声、模型去噪的顺序进行对比。</p>
+                </div>
+                <span class="result-status"><span class="result-status-dot"></span>去噪完成</span>
             </div>
 
+            <div class="denoising-grid">
+                <article class="denoising-card">
+                    <div class="denoising-card-header">
+                        <span class="denoising-index">01</span>
+                        <div><h3>原始图像</h3><p>用户上传的商品图片</p></div>
+                    </div>
+                    <div class="denoising-image-frame">
+                        <img src="{{ url_for('static', filename='uploads/' + uploaded_filename) }}" alt="原始商品图片">
+                    </div>
+                </article>
 
-            <!-- ==================== 图像处理模块 ==================== -->
+                <article class="denoising-card">
+                    <div class="denoising-card-header">
+                        <span class="denoising-index">02</span>
+                        <div><h3>添加噪声后</h3><p>高斯噪声与椒盐噪声混合</p></div>
+                    </div>
+                    <div class="denoising-image-frame">
+                        <img src="{{ url_for('static', filename='results/denoising/' + denoising_result.noisy_filename) }}" alt="添加噪声后的商品图片">
+                    </div>
+                </article>
 
-            {% if uploaded_filename %}
+                <article class="denoising-card">
+                    <div class="denoising-card-header">
+                        <span class="denoising-index">03</span>
+                        <div><h3>U-Net 去噪后</h3><p>模型恢复得到的商品图片</p></div>
+                    </div>
+                    <div class="denoising-image-frame">
+                        <img src="{{ url_for('static', filename='results/denoising/' + denoising_result.denoised_filename) }}" alt="U-Net 去噪结果">
+                    </div>
+                </article>
+            </div>
 
-                <section class="module-section">
+            <div class="noise-parameters">
+                <span>高斯噪声强度：<strong>{{ denoising_result.gaussian_noise_factor }}</strong></span>
+                <span>椒盐噪声比例：<strong>{{ denoising_result.salt_pepper_ratio }}</strong></span>
+                <span>去噪模型：<strong>简化 U-Net</strong></span>
+            </div>
+        </section>
+        {% endif %}
 
-                    <div class="module-heading">
+        {% if prediction and active_module == "classification" %}
+        <section class="classification-result">
+            <div class="result-heading">
+                <div>
+                    <span class="result-kicker">SOFTMAX CLASSIFICATION</span>
+                    <h2>商品分类结果</h2>
+                </div>
+                <span class="result-status"><span class="result-status-dot"></span>分类完成</span>
+            </div>
 
-                        <div>
+            <div class="result-card">
+                <div class="softmax-method">
+                    <span>模型输出</span>
+                    <strong>Softmax</strong>
+                    <small>五分类概率归一化</small>
+                </div>
+                <div class="class-result">
+                    <span class="result-label">Softmax 预测类别</span>
+                    <strong class="class-name">{{ prediction.class_name }}</strong>
+                    <span class="class-id">类别编号：{{ prediction.class_id }}</span>
+                </div>
+                <div class="confidence-result">
+                    <div class="confidence-text">
+                        <span>最高 Softmax 概率</span>
+                        <strong>{{ prediction.confidence_percent }}%</strong>
+                    </div>
+                    <div class="confidence-track">
+                        <div class="confidence-fill" data-confidence="{{ prediction.confidence_percent }}"></div>
+                    </div>
+                    <p>分类模型输出五个类别分数，Softmax 将分数转换为概率，页面显示其中概率最高的商品类别。</p>
+                </div>
+            </div>
+        </section>
+        {% endif %}
 
-                            <span class="module-kicker">
-                                PROCESSING MODULES
-                            </span>
+        {% if ai_description and active_module == "description" %}
+        <section class="ai-description-result">
+            <div class="result-heading">
+                <div>
+                    <span class="result-kicker ai-result-kicker">MULTIMODAL AI DESCRIPTION</span>
+                    <h2>AI 商品介绍</h2>
+                    <p class="result-description">多模态大模型仅根据上传图片中的可见信息，自动生成客观、简洁的中文商品描述。</p>
+                </div>
+                <span class="result-status ai-result-status"><span class="result-status-dot"></span>生成完成</span>
+            </div>
 
-                            <h2>
-                                选择图像处理功能
-                            </h2>
+            <div class="ai-description-card">
+                <div class="ai-model-panel">
+                    <span class="ai-model-icon">✦</span>
+                    <span>生成模型</span>
+                    <strong>Kimi K2.6</strong>
+                    <small>多模态图像理解</small>
+                </div>
+                <div class="ai-description-content">
+                    <span class="result-label">商品图片智能描述</span>
+                    <p>{{ ai_description }}</p>
+                    <div class="ai-description-note">
+                        AI 结果仅用于辅助介绍，品牌、材质、价格与性能参数应以真实商品信息为准。
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
 
-                            <p>
-                                原始图片已经上传完成。
-                                点击对应模块后，才会运行相应模型。
-                            </p>
+        {% if similarity_results and active_module == "similarity" %}
+        <section class="similarity-result">
+            <div class="result-heading">
+                <div>
+                    <span class="result-kicker">COSINE SIMILARITY SEARCH</span>
+                    <h2>相似商品检索结果</h2>
+                    <p class="result-description">编码器将上传图片转换为视觉特征，再从商品特征库中返回余弦距离最近的五张图片。</p>
+                </div>
+                <span class="result-status"><span class="result-status-dot"></span>检索完成</span>
+            </div>
 
+            <div class="similarity-query-card">
+                <div class="similarity-query-image">
+                    <img src="{{ url_for('static', filename='uploads/' + uploaded_filename) }}" alt="相似检索查询图片">
+                </div>
+                <div class="similarity-query-content">
+                    <span>QUERY IMAGE</span>
+                    <h3>当前查询图片</h3>
+                    <p>{{ original_filename }}</p>
+                    <small>下方结果已经按照余弦距离从小到大排列。距离越小，编码器提取出的视觉特征越接近。</small>
+                </div>
+            </div>
+
+            <div class="similarity-grid">
+                {% for result in similarity_results %}
+                <article class="similarity-card">
+                    <div class="similarity-rank">第 {{ result.rank }} 名</div>
+                    <div class="similarity-image-frame">
+                        <img src="{{ url_for('dataset_image', filename=result.filename) }}" alt="相似商品 {{ result.rank }}">
+                    </div>
+                    <div class="similarity-card-content">
+                        <h3>{{ result.filename }}</h3>
+                        <p>数据集索引：{{ result.image_index }}</p>
+                        <div class="similarity-metric">
+                            <span>余弦距离</span>
+                            <strong>{{ "%.6f"|format(result.distance) }}</strong>
                         </div>
-
-                        <span class="step-badge">
-                            STEP 02 · 选择模块
-                        </span>
-
-                    </div>
-
-
-                    <div class="module-grid">
-
-                        <!-- 图像去噪模块 -->
-
-                        <form
-                            class="module-form"
-                            method="post"
-                        >
-
-                            <input
-                                type="hidden"
-                                name="action"
-                                value="denoise"
-                            >
-
-                            <input
-                                type="hidden"
-                                name="uploaded_filename"
-                                value="{{ uploaded_filename }}"
-                            >
-
-                            <input
-                                type="hidden"
-                                name="original_filename"
-                                value="{{ original_filename }}"
-                            >
-
-
-                            <button
-                                class="module-card module-card-active"
-                                type="submit"
-                            >
-
-                                <span class="module-number">
-                                    01
-                                </span>
-
-                                <span class="module-content">
-
-                                    <strong>
-                                        图像去噪
-                                    </strong>
-
-                                    <small>
-                                        添加高斯与椒盐噪声，
-                                        并显示 U-Net 去噪前后对比
-                                    </small>
-
-                                </span>
-
-                                <span class="module-state">
-                                    点击运行
-                                </span>
-
-                            </button>
-
-                        </form>
-
-
-                        <!-- 商品分类模块 -->
-
-                        <form
-                            class="module-form"
-                            method="post"
-                        >
-
-                            <input
-                                type="hidden"
-                                name="action"
-                                value="classify"
-                            >
-
-                            <input
-                                type="hidden"
-                                name="uploaded_filename"
-                                value="{{ uploaded_filename }}"
-                            >
-
-                            <input
-                                type="hidden"
-                                name="original_filename"
-                                value="{{ original_filename }}"
-                            >
-
-
-                            <button
-                                class="module-card module-card-active"
-                                type="submit"
-                            >
-
-                                <span class="module-number">
-                                    02
-                                </span>
-
-                                <span class="module-content">
-
-                                    <strong>
-                                        商品分类
-                                    </strong>
-
-                                    <small>
-                                        对五个类别分数执行 Softmax，
-                                        输出预测类别和最高概率
-                                    </small>
-
-                                </span>
-
-                                <span class="module-state">
-                                    点击运行
-                                </span>
-
-                            </button>
-
-                        </form>
-
-
-                        <!-- 相似检索模块 -->
-
-                        <form
-                            class="module-form"
-                            method="post"
-                        >
-
-                            <input
-                                type="hidden"
-                                name="action"
-                                value="similarity"
-                            >
-
-                            <input
-                                type="hidden"
-                                name="uploaded_filename"
-                                value="{{ uploaded_filename }}"
-                            >
-
-                            <input
-                                type="hidden"
-                                name="original_filename"
-                                value="{{ original_filename }}"
-                            >
-
-
-                            <button
-                                class="module-card module-card-active"
-                                type="submit"
-                            >
-
-                                <span class="module-number">
-                                    03
-                                </span>
-
-                                <span class="module-content">
-
-                                    <strong>
-                                        相似检索
-                                    </strong>
-
-                                    <small>
-                                        提取 1024 维视觉特征，
-                                        检索余弦距离最近的五张商品图片
-                                    </small>
-
-                                </span>
-
-                                <span class="module-state">
-                                    点击运行
-                                </span>
-
-                            </button>
-
-                        </form>
-
-                    </div>
-
-                </section>
-
-            {% endif %}
-
-
-            <!-- ==================== 图像去噪结果 ==================== -->
-
-            {% if denoising_result and active_module == "denoising" %}
-
-                <section class="denoising-result">
-
-                    <div class="result-heading">
-
-                        <div>
-
-                            <span class="result-kicker">
-                                U-NET DENOISING
-                            </span>
-
-                            <h2>
-                                图像去噪结果
-                            </h2>
-
-                            <p class="denoising-description">
-                                按照原始图像、添加噪声、模型去噪的顺序进行对比。
-                            </p>
-
+                        <div class="similarity-track">
+                            <div class="similarity-fill" data-similarity="{{ result.similarity_percent }}"></div>
                         </div>
-
-
-                        <span class="result-status">
-
-                            <span class="result-status-dot"></span>
-
-                            去噪完成
-
-                        </span>
-
-                    </div>
-
-
-                    <!-- 三张图片并排显示 -->
-
-                    <div class="denoising-grid">
-
-                        <!-- 原始图片 -->
-
-                        <article class="denoising-card">
-
-                            <div class="denoising-card-header">
-
-                                <span class="denoising-index">
-                                    01
-                                </span>
-
-                                <div>
-
-                                    <h3>
-                                        原始图像
-                                    </h3>
-
-                                    <p>
-                                        用户上传的商品图片
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="denoising-image-frame">
-
-                                <img
-                                    src="{{ url_for(
-                                        'static',
-                                        filename='uploads/' + uploaded_filename
-                                    ) }}"
-                                    alt="原始商品图片"
-                                >
-
-                            </div>
-
-                        </article>
-
-
-                        <!-- 添加噪声后的图片 -->
-
-                        <article class="denoising-card">
-
-                            <div class="denoising-card-header">
-
-                                <span class="denoising-index">
-                                    02
-                                </span>
-
-                                <div>
-
-                                    <h3>
-                                        添加噪声后
-                                    </h3>
-
-                                    <p>
-                                        高斯噪声与椒盐噪声混合
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="denoising-image-frame">
-
-                                <img
-                                    src="{{ url_for(
-                                        'static',
-                                        filename=
-                                            'results/denoising/'
-                                            + denoising_result.noisy_filename
-                                    ) }}"
-                                    alt="添加噪声后的商品图片"
-                                >
-
-                            </div>
-
-                        </article>
-
-
-                        <!-- 模型去噪后的图片 -->
-
-                        <article class="denoising-card">
-
-                            <div class="denoising-card-header">
-
-                                <span class="denoising-index">
-                                    03
-                                </span>
-
-                                <div>
-
-                                    <h3>
-                                        U-Net 去噪后
-                                    </h3>
-
-                                    <p>
-                                        模型恢复得到的商品图片
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="denoising-image-frame">
-
-                                <img
-                                    src="{{ url_for(
-                                        'static',
-                                        filename=
-                                            'results/denoising/'
-                                            + denoising_result.denoised_filename
-                                    ) }}"
-                                    alt="U-Net 去噪结果"
-                                >
-
-                            </div>
-
-                        </article>
-
-                    </div>
-
-
-                    <!-- 去噪参数说明 -->
-
-                    <div class="noise-parameters">
-
-                        <span>
-                            高斯噪声强度：
-
-                            <strong>
-                                {{ denoising_result.gaussian_noise_factor }}
-                            </strong>
-                        </span>
-
-                        <span>
-                            椒盐噪声比例：
-
-                            <strong>
-                                {{ denoising_result.salt_pepper_ratio }}
-                            </strong>
-                        </span>
-
-                        <span>
-                            去噪模型：
-
-                            <strong>
-                                简化 U-Net
-                            </strong>
-                        </span>
-
-                    </div>
-
-                </section>
-
-            {% endif %}
-
-
-            <!-- ==================== 商品分类结果 ==================== -->
-
-            {% if prediction and active_module == "classification" %}
-
-                <section class="classification-result">
-
-                    <div class="result-heading">
-
-                        <div>
-
-                            <span class="result-kicker">
-                                SOFTMAX CLASSIFICATION
-                            </span>
-
-                            <h2>
-                                商品分类结果
-                            </h2>
-
+                        <div class="similarity-percent">
+                            <span>特征相似度</span>
+                            <strong>{{ "%.2f"|format(result.similarity_percent) }}%</strong>
                         </div>
-
-
-                        <span class="result-status">
-
-                            <span class="result-status-dot"></span>
-
-                            分类完成
-
-                        </span>
-
                     </div>
-
-
-                    <div class="result-card">
-
-                        <!-- Softmax 方法说明 -->
-
-                        <div class="softmax-method">
-
-                            <span>
-                                模型输出
-                            </span>
-
-                            <strong>
-                                Softmax
-                            </strong>
-
-                            <small>
-                                五分类概率归一化
-                            </small>
-
-                        </div>
-
-
-                        <!-- 预测类别 -->
-
-                        <div class="class-result">
-
-                            <span class="result-label">
-                                Softmax 预测类别
-                            </span>
-
-                            <strong class="class-name">
-                                {{ prediction.class_name }}
-                            </strong>
-
-                            <span class="class-id">
-                                类别编号：{{ prediction.class_id }}
-                            </span>
-
-                        </div>
-
-
-                        <!-- 最高 Softmax 概率 -->
-
-                        <div class="confidence-result">
-
-                            <div class="confidence-text">
-
-                                <span>
-                                    最高 Softmax 概率
-                                </span>
-
-                                <strong>
-                                    {{ prediction.confidence_percent }}%
-                                </strong>
-
-                            </div>
-
-
-                            <div class="confidence-track">
-
-                                <div
-                                    class="confidence-fill"
-                                    data-confidence="{{ prediction.confidence_percent }}"
-                                ></div>
-
-                            </div>
-
-
-                            <p>
-                                分类模型输出五个类别分数，
-                                Softmax 将这些分数转换为概率，
-                                页面显示其中概率最高的商品类别。
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-            {% endif %}
-
-
-
-            <!-- ==================== 相似商品检索结果 ==================== -->
-
-            {% if similarity_results and active_module == "similarity" %}
-
-                <section class="similarity-result">
-
-                    <div class="result-heading">
-
-                        <div>
-
-                            <span class="result-kicker">
-                                COSINE SIMILARITY SEARCH
-                            </span>
-
-                            <h2>
-                                相似商品检索结果
-                            </h2>
-
-                            <p class="similarity-description">
-                                编码器将上传图片转换为 1024 维特征，
-                                再从完整商品特征库中返回余弦距离最近的五张图片。
-                            </p>
-
-                        </div>
-
-
-                        <span class="result-status">
-
-                            <span class="result-status-dot"></span>
-
-                            检索完成
-
-                        </span>
-
-                    </div>
-
-
-                    <!-- 查询图片摘要 -->
-
-                    <div class="similarity-query-card">
-
-                        <div class="similarity-query-image">
-
-                            <img
-                                src="{{ url_for(
-                                    'static',
-                                    filename='uploads/' + uploaded_filename
-                                ) }}"
-                                alt="相似检索查询图片"
-                            >
-
-                        </div>
-
-
-                        <div class="similarity-query-content">
-
-                            <span>
-                                QUERY IMAGE
-                            </span>
-
-                            <h3>
-                                当前查询图片
-                            </h3>
-
-                            <p>
-                                {{ original_filename }}
-                            </p>
-
-                            <small>
-                                下方结果已经按照余弦距离从小到大排列。
-                                距离越小，编码器提取出的视觉特征越接近。
-                            </small>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- 五张相似商品图片 -->
-
-                    <div class="similarity-grid">
-
-                        {% for result in similarity_results %}
-
-                            <article class="similarity-card">
-
-                                <div class="similarity-rank">
-                                    第 {{ result.rank }} 名
-                                </div>
-
-
-                                <div class="similarity-image-frame">
-
-                                    <img
-                                        src="{{ url_for(
-                                            'dataset_image',
-                                            filename=result.filename
-                                        ) }}"
-                                        alt="相似商品 {{ result.rank }}"
-                                    >
-
-                                </div>
-
-
-                                <div class="similarity-card-content">
-
-                                    <h3>
-                                        {{ result.filename }}
-                                    </h3>
-
-                                    <p>
-                                        数据集索引：
-                                        {{ result.image_index }}
-                                    </p>
-
-
-                                    <div class="similarity-metric">
-
-                                        <span>
-                                            余弦距离
-                                        </span>
-
-                                        <strong>
-                                            {{ "%.6f"|format(result.distance) }}
-                                        </strong>
-
-                                    </div>
-
-
-                                    <div class="similarity-track">
-
-                                        <div
-                                            class="similarity-fill"
-                                            data-similarity="{{ result.similarity_percent }}"
-                                        ></div>
-
-                                    </div>
-
-
-                                    <div class="similarity-percent">
-
-                                        <span>
-                                            特征相似度
-                                        </span>
-
-                                        <strong>
-                                            {{ "%.2f"|format(result.similarity_percent) }}%
-                                        </strong>
-
-                                    </div>
-
-                                </div>
-
-                            </article>
-
-                        {% endfor %}
-
-                    </div>
-
-
-                    <p class="similarity-note">
-                        “特征相似度”按 1 减余弦距离计算，
-                        用于直观展示特征接近程度，不代表分类概率或模型准确率。
-                    </p>
-
-                </section>
-
-            {% endif %}
-
-        </main>
-
-
-        <!-- ==================== 页脚 ==================== -->
-
-        <footer class="page-footer">
-            河南大学软件学院 · 智图寻宝项目
-        </footer>
-
-    </div>
-
-
-    <!-- 引入首页 JavaScript -->
-
-    <script
-        src="{{ url_for('static', filename='js/index.js') }}"
-    ></script>
-
+                </article>
+                {% endfor %}
+            </div>
+
+            <p class="similarity-note">
+                “特征相似度”按照 1 减余弦距离计算，仅用于直观展示特征接近程度，不代表分类概率或模型准确率。
+            </p>
+        </section>
+        {% endif %}
+    </main>
+
+    <footer class="page-footer">河南大学软件学院 · 智图寻宝项目</footer>
+</div>
+
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
 </body>
-
 </html>

@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from tqdm import tqdm
 from torch.utils.data import DataLoader
 
 from common.utils import seed_everything
@@ -64,7 +65,11 @@ def train_model():
     model=model.to(device)
 
     # 6.创建损失函数
-    criterion = nn.MSELoss()
+    # MSELoss 计算的是误差平方，为了降低整体误差，模型有时会倾向于把多个可能的像素取平均
+    # 结果就是噪声点少了，但是边缘，图案和纹理也模糊了
+    #  L1Loss 使用绝对误差 |预测像素 - 真实像素|
+    # 更有利于保留 商品轮廓，衣服边缘，花纹等
+    criterion = nn.L1Loss()
 
     # 7. 创建优化器
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
@@ -78,7 +83,15 @@ def train_model():
     train_losses = []
     val_losses = []
 
-    for epoch in range(EPOCHS):
+    # 创建 Epoch 进度条
+    epoch_progress = tqdm(
+        range(EPOCHS),
+        total=EPOCHS,
+        desc="图像去噪模型训练",
+        unit="epoch",
+    )
+
+    for epoch in epoch_progress:
 
         # 完成一轮训练
         train_loss = train_epoch(
@@ -98,11 +111,20 @@ def train_model():
         train_losses.append(train_loss)
         val_losses.append(val_loss)
 
-        print(
+        # 在进度条右侧显示当前损失
+        epoch_progress.set_postfix(
+            train_loss=f"{train_loss:.6f}",
+            val_loss=f"{val_loss:.6f}",
+            best_val_loss=f"{best_val_loss:.6f}",
+        )
+
+        # 输出当前 Epoch 的完整训练记录
+        tqdm.write(
             f"Epoch [{epoch + 1}/{EPOCHS}] "
             f"Train Loss: {train_loss:.6f} "
             f"Val Loss: {val_loss:.6f}"
         )
+
 
         # 9. 保存最佳模型
         if val_loss < best_val_loss:
@@ -113,7 +135,7 @@ def train_model():
                 DENOISER_MODEL_PATH,
             )
 
-            print(
+            tqdm.write(
                 "保存新的最佳模型，"
                 f"验证损失：{best_val_loss:.6f}"
             )

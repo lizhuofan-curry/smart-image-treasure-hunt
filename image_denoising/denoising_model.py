@@ -55,14 +55,55 @@ class ConvBlock(nn.Module):
     def forward(self, x):
         return self.block(x)
 
+'''
+SE 通道注意力模块
+
+输入和输出形状保持不变
+[batch,channels,heights,width]
+'''
+class SEBlock(nn.Module):
+    def __init__(self,
+                 channels,
+                 reduction = 16
+    ):
+        super().__init__()
+
+        hidden_channels = max(channels // reduction, 4)
+
+        # Squeeze : 把每个通道压缩成一个数
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+
+        # Excitation 计算每个通道的重要程度
+        self.channel_attention = nn.Sequential(
+            nn.Conv2d(
+                channels,
+                hidden_channels,
+                kernel_size = 1,
+            ),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(
+                hidden_channels,
+                channels,
+                kernel_size = 1,
+            ),
+            nn.Sigmoid(),
+        )
+    def forward(self, x):
+        # 得到每个通道的权重
+        channel_weight = self.avg_pool(x)
+        channel_weight = self.channel_attention(channel_weight)
+
+        # 对每个通道进行加权
+        return x * channel_weight
+
 class ConvDenoiser(nn.Module):
     '''
-    简化版 U-Net 图像去噪模型
+    简化版 U-Net 残差图像去噪模型
     输入：
         带噪 RGB 图片
         [batch,3,64,64]
     输出：
-        模型预测的清晰的 RGB 图片
+        模型预测的噪声残差
         [batch,3,64,64]
     核心结构：
         编码器负责提取特征并逐步缩小尺寸
@@ -72,7 +113,7 @@ class ConvDenoiser(nn.Module):
     def __init__(self):
         super().__init__()
 
-        # 1.解码器
+        # 1.编码器
         # 第一层不缩小图片，只提取浅层特征
         # 浅层特征保存较多：边缘，颜色，人物位置和局部纹理
         # [batch,3,64,64] -> [batch,32,64,64]
@@ -95,6 +136,9 @@ class ConvDenoiser(nn.Module):
         # 负责学习图片的整体语义和高级特征
         # [batch,128,8,8] -> [batch,256,8,8]
         self.bottleneck = ConvBlock(128,256)
+
+        # 对最深层的 256 个特征通道重新分配权重
+        self.bottleneck_se = SEBlock(256,16)
 
         # 解码器第一阶段
         # 先将尺寸从 8x8 放大到 16x16
@@ -131,12 +175,10 @@ class ConvDenoiser(nn.Module):
         self.decoder1 = ConvBlock(64,32)
 
         # 输出层
-        # 将 32 个特征通道转换成 RGB 三通道
-        self.output_layer = nn.Sequential(
-            nn.Conv2d(32,3,1),
-            # 将预测像素限制在  [0,1]
-            nn.Sigmoid()
-        )
+        # 将 32 个特征通道转换成 3 通道噪声残差
+        # 注意：噪声既可能是正数也可能是负数
+        # 因此这里不能用 sigmoid
+        self.output_layer = nn.Conv2d(32,3,1)
 
     def forward(self, x):
         # 编码阶段
@@ -160,6 +202,10 @@ class ConvDenoiser(nn.Module):
         # 瓶颈阶段
         # [batch,128,8,8] -> [batch,256,8,8]
         x = self.bottleneck(x)
+
+        # 对瓶颈层的 256 个通道重新分配权重
+        # 输入输出都是 [batch,256,8,8]
+        bottleneck = self.bottleneck_se(x)
 
         # 解码阶段一
         # [batch,256,8,8] -> [batch,128,16,16]
@@ -188,12 +234,12 @@ class ConvDenoiser(nn.Module):
         # 与encoder1 拼接
         # [batch,32,64,64] -> [batch,64,64,64]
         x = torch.cat([x,enc1],dim=1)
-        # [batch,64,64,64] -> [32,64,64]
+        # [batch,64,64,64] -> [batch,32,64,64]
         x = self.decoder1(x)
 
-        # 转化回 RGB 图片
-        output = self.output_layer(x)
-        return output
+        # 模型不再输出清晰图片，而是预测带噪图片中的声音残差
+        predicted_noise = self.output_layer(x)
+        return predicted_noise
 
 
 # 当前阶段只测试模型前向传播和形状变化
@@ -203,7 +249,7 @@ if __name__ == "__main__":
     #
     # 形状：
     # [batch_size, channels, height, width]
-    test_input = torch.randn(
+    test_input = torch.rand(
         4,
         3,
         64,

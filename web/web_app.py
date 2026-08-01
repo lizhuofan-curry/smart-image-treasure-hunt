@@ -27,7 +27,9 @@ from web.services.similarity_service import (
     similarity_service,
 )
 
-
+from common.llm_service import (
+    generate_product_description,
+)
 # ==================== 1. 路径配置 ====================
 
 # 当前 web 模块目录
@@ -112,6 +114,14 @@ def get_uploaded_image_path(
 
 
 # ==================== 4. 数据集图片访问路由 ====================
+@app.route("/ping")
+def ping():
+    print(
+        ">>> 浏览器已经连接到当前 Flask 程序",
+        flush=True,
+    )
+
+    return "当前 web_app.py 连接成功"
 
 @app.route(
     "/dataset/<path:filename>",
@@ -157,6 +167,9 @@ def index():
     # 相似检索结果
     similarity_results = None
 
+    # AI 商品介绍
+    ai_description = None
+
     # 当前运行的模块
     active_module = None
 
@@ -173,7 +186,15 @@ def index():
             "action",
             "",
         )
+        print(
+            "收到的表单：",
+            request.form.to_dict(),
+        )
 
+        print(
+            "收到的 action：",
+            repr(action),
+        )
 
         # ==================== 7. 上传图片 ====================
 
@@ -468,7 +489,58 @@ def index():
                 )
 
 
-        # ==================== 11. 未知操作 ====================
+        # ==================== 11. AI 商品介绍 ====================
+
+        elif action == "describe":
+
+            uploaded_filename = (
+                request.form.get(
+                    "uploaded_filename",
+                    "",
+                )
+            )
+
+            original_filename = (
+                request.form.get(
+                    "original_filename",
+                    "",
+                )
+            )
+
+            try:
+                # 找到用户已经上传的原始图片
+                image_path = (
+                    get_uploaded_image_path(
+                        uploaded_filename
+                    )
+                )
+
+                # 调用 Kimi 多模态模型生成商品介绍
+                ai_description = (
+                    generate_product_description(
+                        image_path=image_path
+                    )
+                )
+
+                # 告诉前端当前显示 AI 商品介绍模块
+                active_module = "description"
+
+                print(
+                    "AI 商品介绍输入：",
+                    image_path,
+                )
+
+                print(
+                    "AI 商品介绍结果：",
+                    ai_description,
+                )
+
+            except Exception as error:
+                error_message = (
+                    f"AI 商品介绍生成失败：{error}"
+                )
+
+
 
         else:
             error_message = (
@@ -499,6 +571,10 @@ def index():
             similarity_results
         ),
 
+        ai_description=(
+            ai_description
+        ),
+
         active_module=(
             active_module
         ),
@@ -514,7 +590,7 @@ def index():
 if __name__ == "__main__":
     app.run(
         host="127.0.0.1",
-        port=9000,
+        port=9001,
         debug=True,
 
         # 防止三个模型重复加载

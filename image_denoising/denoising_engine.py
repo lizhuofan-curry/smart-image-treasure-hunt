@@ -31,11 +31,16 @@ def train_epoch(
         # 情况上一次的梯度
         optimizer.zero_grad()
 
-        # 向前传播
-        denoised_images = model(noisy_images)
+        # 模型根据带噪图片预测噪声
+        predicted_noise = model(noisy_images)
 
-        # 计算损失
-        loss = criterion(denoised_images, clean_images)
+        # 计算这批图片的真实噪声
+        # 带噪图片 = 清晰图片 + 噪声
+        # 所以 真实噪声 = 带噪图片 - 清晰图片
+        target_noise = noisy_images-clean_images
+
+        # 比较预测噪声和真实噪声
+        loss = criterion(predicted_noise, target_noise)
 
         # 反向传播
         loss.backward()
@@ -86,11 +91,14 @@ def evaluate(
             noisy_images = noisy_images.to(device)
             clean_images = clean_images.to(device)
 
-            # 向前传播，生成去噪结果
-            denoised_images = model(noisy_images)
+            # 模型预测噪声
+            predicted_noise = model(noisy_images)
 
-            # 计算验证损失
-            loss = criterion(denoised_images, clean_images)
+            # 计算真实噪声
+            target_noise = noisy_images-clean_images
+
+            # 比较预测噪声与真实噪声
+            loss = criterion(predicted_noise, target_noise)
 
             # 当前batch 实际数量
             batch_size = noisy_images.size(0)
