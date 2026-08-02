@@ -109,6 +109,7 @@ def create_transform():
 def create_dataset():
 
     transform = create_transform()
+
     # 包含全部商品图片的数据集
     full_dataset = ImageReconstructionDataset(
         image_dir=IMG_DIR,

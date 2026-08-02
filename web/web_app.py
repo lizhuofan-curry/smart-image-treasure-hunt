@@ -414,6 +414,19 @@ def index():
                     )
                 )
 
+                # 先判断查询图片的商品类别，
+                # 再把相似检索限制在同一类别中。
+                prediction = (
+                    classifier_service
+                    .predict_image_path(
+                        image_path
+                    )
+                )
+
+                search_class_id = (
+                    prediction["class_id"]
+                )
+
                 # 多查询一些近邻。
                 # 当上传图片本身来自商品库时，
                 # 后面会排除距离接近 0 的同一张图片，
@@ -422,7 +435,9 @@ def index():
                     NUM_SIMILAR_IMAGES + 10,
                     len(
                         similarity_service
-                        .embeddings
+                        .class_image_indices[
+                            search_class_id
+                        ]
                     ),
                 )
 
@@ -431,6 +446,7 @@ def index():
                     .search_image_path(
                         image_path=image_path,
                         num_images=search_count,
+                        class_id=search_class_id,
                     )
                 )
 
@@ -469,6 +485,11 @@ def index():
                 print(
                     "相似检索输入：",
                     image_path,
+                )
+
+                print(
+                    "相似检索类别：",
+                    prediction,
                 )
 
                 print(

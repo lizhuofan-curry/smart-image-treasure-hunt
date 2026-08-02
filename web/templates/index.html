@@ -308,7 +308,7 @@
                 <div>
                     <span class="result-kicker">COSINE SIMILARITY SEARCH</span>
                     <h2>相似商品检索结果</h2>
-                    <p class="result-description">编码器将上传图片转换为视觉特征，再从商品特征库中返回余弦距离最近的五张图片。</p>
+                    <p class="result-description">系统先识别商品类别，再由编码器提取视觉特征，并从同类别商品中返回余弦距离最近的五张图片。</p>
                 </div>
                 <span class="result-status"><span class="result-status-dot"></span>检索完成</span>
             </div>
@@ -321,6 +321,9 @@
                     <span>QUERY IMAGE</span>
                     <h3>当前查询图片</h3>
                     <p>{{ original_filename }}</p>
+                    {% if prediction %}
+                    <p>检索类别：{{ prediction.class_name }}（分类置信度 {{ "%.2f"|format(prediction.confidence_percent) }}%）</p>
+                    {% endif %}
                     <small>下方结果已经按照余弦距离从小到大排列。距离越小，编码器提取出的视觉特征越接近。</small>
                 </div>
             </div>
@@ -335,6 +338,7 @@
                     <div class="similarity-card-content">
                         <h3>{{ result.filename }}</h3>
                         <p>数据集索引：{{ result.image_index }}</p>
+                        <p>商品类别：{{ result.class_name }}</p>
                         <div class="similarity-metric">
                             <span>余弦距离</span>
                             <strong>{{ "%.6f"|format(result.distance) }}</strong>

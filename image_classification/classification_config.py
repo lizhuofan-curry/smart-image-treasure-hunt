@@ -40,7 +40,7 @@ VAL_RATIO = 1-TRAIN_RATIO
 # ====================4.训练超参数======================
 
 # 优化器学习率
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 1e-4
 
 # 训练阶段每个 batch 的图片数量
 TRAIN_BATCH_SIZE = 32
@@ -52,7 +52,7 @@ VAL_BATCH_SIZE = 32
 TEST_BATCH_SIZE = 32
 
 # 模拟训练轮数
-EPOCHS = 10
+EPOCHS = 50
 
 # Windows 环境先使用 0，避免多进程加载报错
 NUM_WORKERS = 0

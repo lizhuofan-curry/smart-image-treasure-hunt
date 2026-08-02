@@ -56,6 +56,7 @@ web/static/results/*
 !web/static/uploads/.gitkeep
 !web/static/results/.gitkeep
 !web/static/results/denoising/
+web/static/results/denoising/*
 !web/static/results/denoising/.gitkeep
 
 
