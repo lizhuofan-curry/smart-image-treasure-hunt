@@ -7,6 +7,15 @@ from PIL import Image
 import torch
 from sklearn.neighbors import NearestNeighbors
 
+from image_classification.classification_config import (
+    CLASSIFICATION_NAMES,
+    FASHION_LABELS_PATH,
+    NUM_CLASSES,
+)
+from image_classification.classification_data import (
+    load_labels,
+)
+
 from image_similarity.similarity_config import (
     EMBEDDING_PATH,
     ENCODER_MODEL_PATH,
@@ -143,13 +152,43 @@ class SimilarityService:
         )
 
 
-        # ==================== 6. 创建图片预处理 ====================
+        # ==================== 6. 加载商品类别 ====================
+
+        labels_dict = load_labels(
+            FASHION_LABELS_PATH
+        )
+
+        if len(labels_dict) != len(self.image_paths):
+            raise RuntimeError(
+                "商品标签数量与图片数量不一致："
+                f"标签数量为 {len(labels_dict)}，"
+                f"图片数量为 {len(self.image_paths)}"
+            )
+
+        try:
+            self.image_labels = np.asarray(
+                [
+                    labels_dict[index]
+                    for index in range(
+                        len(self.image_paths)
+                    )
+                ],
+                dtype=np.int64,
+            )
+        except KeyError as error:
+            raise RuntimeError(
+                "商品标签缺少图片索引："
+                f"{error.args[0]}"
+            ) from error
+
+
+        # ==================== 7. 创建图片预处理 ====================
 
         # 网页上传图片必须使用与训练阶段相同的预处理
         self.transform = create_transform()
 
 
-        # ==================== 7. 创建 KNN 检索器 ====================
+        # ==================== 8. 创建 KNN 检索器 ====================
 
         self.knn = NearestNeighbors(
             n_neighbors=NUM_SIMILAR_IMAGES,
@@ -165,6 +204,41 @@ class SimilarityService:
         print(
             "相似商品 KNN 检索器创建完成"
         )
+
+
+        # ==================== 9. 创建分类别 KNN 检索器 ====================
+
+        self.class_image_indices = {}
+        self.class_knn = {}
+
+        for class_id in range(NUM_CLASSES):
+            image_indices = np.flatnonzero(
+                self.image_labels == class_id
+            )
+
+            if len(image_indices) == 0:
+                raise RuntimeError(
+                    "商品特征库中没有类别："
+                    f"{class_id}-{CLASSIFICATION_NAMES[class_id]}"
+                )
+
+            class_retriever = NearestNeighbors(
+                metric="cosine"
+            )
+            class_retriever.fit(
+                self.embeddings[image_indices]
+            )
+
+            self.class_image_indices[class_id] = (
+                image_indices
+            )
+            self.class_knn[class_id] = class_retriever
+
+            print(
+                "分类别检索器创建完成："
+                f"{class_id}-{CLASSIFICATION_NAMES[class_id]}，"
+                f"{len(image_indices)} 张"
+            )
 
 
     def extract_feature(
@@ -262,6 +336,7 @@ class SimilarityService:
             self,
             image,
             num_images=NUM_SIMILAR_IMAGES,
+            class_id=None,
     ):
         """
         检索与一张 PIL 图片最相似的商品图片。
@@ -276,11 +351,28 @@ class SimilarityService:
                 "num_images 必须大于 0"
             )
 
-        if num_images > len(
-                self.embeddings
-        ):
+        if class_id is None:
+            retriever = self.knn
+            candidate_indices = np.arange(
+                len(self.embeddings)
+            )
+        else:
+            if (
+                    not isinstance(class_id, int)
+                    or class_id not in self.class_knn
+            ):
+                raise ValueError(
+                    "class_id 必须是合法的商品类别编号"
+                )
+
+            retriever = self.class_knn[class_id]
+            candidate_indices = (
+                self.class_image_indices[class_id]
+            )
+
+        if num_images > len(candidate_indices):
             raise ValueError(
-                "返回图片数量不能超过商品库数量"
+                "返回图片数量不能超过当前检索范围的商品数量"
             )
 
 
@@ -294,7 +386,7 @@ class SimilarityService:
         # ==================== 2. 执行 KNN 查询 ====================
 
         distances, indices = (
-            self.knn.kneighbors(
+            retriever.kneighbors(
                 feature_vector,
                 n_neighbors=num_images,
             )
@@ -320,8 +412,12 @@ class SimilarityService:
             ),
             start=1,
         ):
+            # 分类别 KNN 返回的是类别子库中的局部索引，
+            # 需要映射回完整商品库中的原始索引。
             image_index = int(
-                image_index
+                candidate_indices[
+                    int(image_index)
+                ]
             )
 
             distance = float(
@@ -360,6 +456,14 @@ class SimilarityService:
                     image_path.name
                 ),
 
+                "class_id": int(
+                    self.image_labels[image_index]
+                ),
+
+                "class_name": CLASSIFICATION_NAMES[
+                    int(self.image_labels[image_index])
+                ],
+
                 "distance": round(
                     distance,
                     6,
@@ -378,6 +482,7 @@ class SimilarityService:
             self,
             image_path,
             num_images=NUM_SIMILAR_IMAGES,
+            class_id=None,
     ):
         """
         根据图片文件路径执行相似商品检索。
@@ -400,6 +505,7 @@ class SimilarityService:
                 self.search_pil_image(
                     image=image,
                     num_images=num_images,
+                    class_id=class_id,
                 )
             )
 

@@ -189,10 +189,17 @@ class DenoisingService:
 
         with torch.inference_mode():
 
+            # 模型输出的是预测噪声
             # [1, 3, 64, 64]
-            denoised_batch = self.model(
+            predicted_noise_batch = self.model(
                 noisy_batch
             )
+
+            # 带噪图片 - 预测噪声 = 去噪图片
+            denoised_batch = (noisy_batch - predicted_noise_batch)
+
+            # 将像素限制在 [0,1] 范围内
+            denoised_batch = torch.clamp(denoised_batch, 0.0, 1.0)
 
 
         # 去掉 batch 维度

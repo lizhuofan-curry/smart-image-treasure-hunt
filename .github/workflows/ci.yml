@@ -11,8 +11,8 @@ permissions:
   contents: read
 
 jobs:
-  syntax-and-layout:
-    name: Python syntax and project layout
+  quality-and-smoke-tests:
+    name: Syntax, layout and smoke tests
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -23,13 +23,51 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: pip
+      - name: Install CPU dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements.txt
       - name: Compile Python modules
         run: >-
           python -m compileall -q common image_classification image_denoising
-          image_similarity web
+          image_similarity web tests
       - name: Verify required project files
         run: |
           test -f README.md
           test -f requirements.txt
           test -f common/fashion-labels.csv
           test -f web/web_app.py
+          test -f tests/test_smoke.py
+          test -f image_classification/classifier.pth
+          test -f image_denoising/denoiser.pth
+          test -f image_similarity/encoder.pth
+          test -f image_similarity/decoder.pth
+          test -f image_similarity/embeddings.npy
+      - name: Run model, retrieval and Flask smoke tests
+        run: python -m unittest -v tests.test_smoke
+
+  lfs-asset-compatibility:
+    name: LFS model and embedding compatibility
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository with LFS assets
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install CPU dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install numpy
+      - name: Verify real model weights and embedding dimensions
+        env:
+          RUN_LFS_ASSET_TESTS: '1'
+        run: python -m unittest -v tests.test_assets

@@ -3,9 +3,7 @@
 import torch
 import torch.nn as nn
 
-#
-class ConvBlock(nn.Module):
-    '''
+'''
     U-Net 中使用的基础卷积块
     输入：
         [batch,in_channels,H,W]
@@ -18,6 +16,8 @@ class ConvBlock(nn.Module):
     因此不会改变图片的高度和宽度
     只会改变通道数量并进一步提取特征
     '''
+class ConvBlock(nn.Module):
+
     def __init__(
             self,
             in_channels,
@@ -96,8 +96,8 @@ class SEBlock(nn.Module):
         # 对每个通道进行加权
         return x * channel_weight
 
-class ConvDenoiser(nn.Module):
-    '''
+
+'''
     简化版 U-Net 残差图像去噪模型
     输入：
         带噪 RGB 图片
@@ -110,6 +110,9 @@ class ConvDenoiser(nn.Module):
         解码器负责逐步恢复图片尺寸
         跳跃连接把编码器中的空间细节直接传给解码器
     '''
+
+class ConvDenoiser(nn.Module):
+
     def __init__(self):
         super().__init__()
 
@@ -209,7 +212,7 @@ class ConvDenoiser(nn.Module):
 
         # 解码阶段一
         # [batch,256,8,8] -> [batch,128,16,16]
-        x = self.up3(x)
+        x = self.up3(bottleneck)
 
         # 将解码器特征与 encoder3 的特征沿通道维度拼接
         # [batch,128,16,16] -> [batch,256,16,16]

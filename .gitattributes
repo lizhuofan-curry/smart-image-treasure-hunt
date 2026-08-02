@@ -1,4 +1,6 @@
-# Reproducibility assets are stored through Git LFS.
+# Model and embedding assets are stored through Git LFS.
+# Keep a future dataset archive in LFS only after its source and redistribution
+# permission have been documented; the archive is not currently distributed.
 common/dataset.zip filter=lfs diff=lfs merge=lfs -text
 *.pth filter=lfs diff=lfs merge=lfs -text
 *.npy filter=lfs diff=lfs merge=lfs -text
