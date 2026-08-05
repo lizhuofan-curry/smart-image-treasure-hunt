@@ -164,6 +164,11 @@ def index():
     # 去噪结果
     denoising_result = None
 
+    # 去噪流程中的三组分类结果
+    original_prediction = None
+    noisy_prediction = None
+    denoised_prediction = None
+
     # 相似检索结果
     similarity_results = None
 
@@ -364,6 +369,33 @@ def index():
                     )
                 )
 
+                # 分别对原图、加噪图和去噪图进行分类，
+                # 用于直观展示噪声对分类的影响以及去噪后的恢复效果。
+                original_prediction = (
+                    classifier_service
+                    .predict_image_path(
+                        image_path
+                    )
+                )
+
+                noisy_prediction = (
+                    classifier_service
+                    .predict_image_path(
+                        denoising_result[
+                            "noisy_path"
+                        ]
+                    )
+                )
+
+                denoised_prediction = (
+                    classifier_service
+                    .predict_image_path(
+                        denoising_result[
+                            "denoised_path"
+                        ]
+                    )
+                )
+
                 active_module = "denoising"
 
                 print(
@@ -374,6 +406,15 @@ def index():
                 print(
                     "图像去噪结果：",
                     denoising_result,
+                )
+
+                print(
+                    "原图、加噪图、去噪图分类对比：",
+                    {
+                        "original": original_prediction,
+                        "noisy": noisy_prediction,
+                        "denoised": denoised_prediction,
+                    },
                 )
 
             except (
@@ -586,6 +627,18 @@ def index():
 
         denoising_result=(
             denoising_result
+        ),
+
+        original_prediction=(
+            original_prediction
+        ),
+
+        noisy_prediction=(
+            noisy_prediction
+        ),
+
+        denoised_prediction=(
+            denoised_prediction
         ),
 
         similarity_results=(
