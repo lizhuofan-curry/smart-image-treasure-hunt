@@ -230,6 +230,64 @@
                 </article>
             </div>
 
+            {% if original_prediction and noisy_prediction and denoised_prediction %}
+            <section class="denoising-classification-comparison">
+                <div class="comparison-heading">
+                    <div>
+                        <span class="result-kicker">DOWNSTREAM CLASSIFICATION</span>
+                        <h3>去噪前后分类效果对比</h3>
+                        <p>使用同一个商品分类模型分别测试原图、加噪图和 U-Net 去噪图。</p>
+                    </div>
+                    <span class="comparison-badge">分类一致性验证</span>
+                </div>
+
+                <div class="classification-comparison-grid">
+                    <article class="classification-comparison-card">
+                        <span class="comparison-stage">01 · ORIGINAL</span>
+                        <h4>原始图片</h4>
+                        <strong class="comparison-class-name">{{ original_prediction.class_name }}</strong>
+                        <span class="comparison-confidence">{{ original_prediction.confidence_percent }}%</span>
+                        <div class="confidence-track">
+                            <div class="confidence-fill" data-confidence="{{ original_prediction.confidence_percent }}"></div>
+                        </div>
+                        <small>分类模型在未添加噪声时的预测基准</small>
+                    </article>
+
+                    <article class="classification-comparison-card classification-comparison-card-noisy">
+                        <span class="comparison-stage">02 · NOISY</span>
+                        <h4>添加噪声后</h4>
+                        <strong class="comparison-class-name">{{ noisy_prediction.class_name }}</strong>
+                        <span class="comparison-confidence">{{ noisy_prediction.confidence_percent }}%</span>
+                        <div class="confidence-track">
+                            <div class="confidence-fill" data-confidence="{{ noisy_prediction.confidence_percent }}"></div>
+                        </div>
+                        <small>混合噪声干扰下的分类结果</small>
+                    </article>
+
+                    <article class="classification-comparison-card classification-comparison-card-denoised">
+                        <span class="comparison-stage">03 · DENOISED</span>
+                        <h4>U-Net 去噪后</h4>
+                        <strong class="comparison-class-name">{{ denoised_prediction.class_name }}</strong>
+                        <span class="comparison-confidence">{{ denoised_prediction.confidence_percent }}%</span>
+                        <div class="confidence-track">
+                            <div class="confidence-fill" data-confidence="{{ denoised_prediction.confidence_percent }}"></div>
+                        </div>
+                        <small>去噪结果重新输入分类模型后的结果</small>
+                    </article>
+                </div>
+
+                <div class="classification-comparison-summary">
+                    <p>
+                        {% if denoised_prediction.class_id == original_prediction.class_id %}
+                            去噪后的预测类别与原图一致，说明当前样本的商品语义得到保持。
+                        {% else %}
+                            去噪后的预测类别与原图不一致，说明当前样本仍存在分类信息损失。
+                        {% endif %}
+                    </p>
+                </div>
+            </section>
+            {% endif %}
+
             <div class="noise-parameters">
                 <span>高斯噪声强度：<strong>{{ denoising_result.gaussian_noise_factor }}</strong></span>
                 <span>椒盐噪声比例：<strong>{{ denoising_result.salt_pepper_ratio }}</strong></span>

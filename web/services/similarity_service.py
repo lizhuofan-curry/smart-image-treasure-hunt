@@ -211,7 +211,10 @@ class SimilarityService:
         self.class_image_indices = {}
         self.class_knn = {}
 
-        for class_id in range(NUM_CLASSES):
+        # 依次处理上衣，鞋，包，下衣和手表
+        for class_id in range(NUM_CLASSES):# todo
+
+            # 找出当前类别包含哪些图片，flatnonzero 返回非零位置对应的下标
             image_indices = np.flatnonzero(
                 self.image_labels == class_id
             )
@@ -222,16 +225,22 @@ class SimilarityService:
                     f"{class_id}-{CLASSIFICATION_NAMES[class_id]}"
                 )
 
+            # 创建一个使用余弦距离的KNN
+            # 这里每次都创建了一个新对象，所以不会被覆盖
             class_retriever = NearestNeighbors(
                 metric="cosine"
             )
+            # 把当前类别的图片特征交给这个KNN
             class_retriever.fit(
                 self.embeddings[image_indices]
             )
 
+            # 保存当前类别对应的图片编号
             self.class_image_indices[class_id] = (
                 image_indices
             )
+
+            # 每个类别对应的 knn 检索器
             self.class_knn[class_id] = class_retriever
 
             print(
